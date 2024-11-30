@@ -21,64 +21,63 @@ try {
  * - from 0 to `yearsMax` years of life
  * - beware: approximation using premiums from cohorts of previous years, newer cohorts aren't necessarily like older ones!
  * - doesn't support Krankentagegeld
- * - makes `yearsMax*4*3*(4+4+2)` requests
+ * - makes `yearsMax*3*(4+4+2)` requests
+ * - hardcode `berufGruppe: 1` since all give identical data, see `validate: add` commit
  */
 for (let year = 0; year <= yearsMax; year += 1) {
   const yearOfBirthOld = yearOfBirth - year;
 
-  for (let berufGruppe = 1; berufGruppe <= 4; berufGruppe += 1) {
-    for (const zahlweise of [1, 2, 12]) {
-      for (const sbS of [0, 300, 600, 1500]) {
-        const info = {
-          berufGruppe,
-          dateOfBirthVp: `${yearOfBirthOld}-01-01`,
-          startDate: "2025-01-01",
-          sbE: 300,
-          sbK: 0,
-          sbS,
-          produktlinie: "S",
-          ppv: true,
-          kt: false,
-          ktTgs: 50,
-          zahlweise,
-        } as const;
+  for (const zahlweise of [1, 2, 12]) {
+    for (const sbS of [0, 300, 600, 1500]) {
+      const info = {
+        berufGruppe: 1,
+        dateOfBirthVp: `${yearOfBirthOld}-01-01`,
+        startDate: "2025-01-01",
+        sbE: 300,
+        sbK: 0,
+        sbS,
+        produktlinie: "S",
+        ppv: true,
+        kt: false,
+        ktTgs: 50,
+        zahlweise,
+      } as const;
 
-        await get(info, year);
-      }
-      for (const sbK of [0, 300, 600, 1500]) {
-        const info = {
-          berufGruppe,
-          dateOfBirthVp: `${yearOfBirthOld}-01-01`,
-          startDate: "2025-01-01",
-          sbE: 300,
-          sbK,
-          sbS: 0,
-          produktlinie: "K",
-          ppv: true,
-          kt: false,
-          ktTgs: 50,
-          zahlweise,
-        } as const;
+      await get(info, year);
+    }
+    for (const sbK of [0, 300, 600, 1500]) {
+      const info = {
+        berufGruppe: 1,
+        dateOfBirthVp: `${yearOfBirthOld}-01-01`,
+        startDate: "2025-01-01",
+        sbE: 300,
+        sbK,
+        sbS: 0,
+        produktlinie: "K",
+        ppv: true,
+        kt: false,
+        ktTgs: 50,
+        zahlweise,
+      } as const;
 
-        await get(info, year);
-      }
-      for (const sbE of [300, 1500]) {
-        const info = {
-          berufGruppe,
-          dateOfBirthVp: `${yearOfBirthOld}-01-01`,
-          startDate: "2025-01-01",
-          sbE,
-          sbK: 0,
-          sbS: 0,
-          produktlinie: "E",
-          ppv: true,
-          kt: false,
-          ktTgs: 50,
-          zahlweise,
-        } as const;
+      await get(info, year);
+    }
+    for (const sbE of [300, 1500]) {
+      const info = {
+        berufGruppe: 1,
+        dateOfBirthVp: `${yearOfBirthOld}-01-01`,
+        startDate: "2025-01-01",
+        sbE,
+        sbK: 0,
+        sbS: 0,
+        produktlinie: "E",
+        ppv: true,
+        kt: false,
+        ktTgs: 50,
+        zahlweise,
+      } as const;
 
-        await get(info, year);
-      }
+      await get(info, year);
     }
   }
 }
@@ -96,7 +95,6 @@ async function get(info: InfoRequest, year: number) {
   if (info.produktlinie === "S") {
     const result = {
       produktlinie: info.produktlinie,
-      berufGruppe: info.berufGruppe,
       year: year,
       sb: info.sbS,
       zahlweise: info.zahlweise,
@@ -117,7 +115,6 @@ async function get(info: InfoRequest, year: number) {
   } else if (info.produktlinie === "K") {
     const result = {
       produktlinie: info.produktlinie,
-      berufGruppe: info.berufGruppe,
       year: year,
       sb: info.sbK,
       zahlweise: info.zahlweise,
@@ -138,7 +135,6 @@ async function get(info: InfoRequest, year: number) {
   } else if (info.produktlinie === "E") {
     const result = {
       produktlinie: info.produktlinie,
-      berufGruppe: info.berufGruppe,
       year: year,
       sb: info.sbE,
       zahlweise: info.zahlweise,
