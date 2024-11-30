@@ -1,7 +1,7 @@
 /**
  * Personal information
  */
-export interface Info {
+export interface InfoRequest {
   /**
    * Beruflicher Status
    *
@@ -40,6 +40,10 @@ export interface Info {
    * Selbstbeteiligung Tarif S
    */
   sbS: 0 | 300 | 600 | 1500;
+  /**
+   * Produktlinie
+   */
+  produktlinie: "E" | "K" | "S";
   /**
    * Pflegepflichtversicherung
    */
@@ -106,6 +110,26 @@ export interface Info {
  * Premium amounts
  */
 export interface Premium {
+  /**
+   * Gesamtbeitrag
+   *
+   * - Achtung: variiert je nach `zahlweise`
+   */
+  beitragGesamt: number;
+  /**
+   * Monatsbeitrag
+   */
+  beitragProdukt: number;
+  /**
+   * Monatsbeitrag Pflegepflichtversicherung
+   */
+  beitragPpv: number;
+}
+
+/**
+ * Premium amounts
+ */
+export interface PremiumResult {
   /**
    * Gesamtbeitrag
    *

@@ -1,4 +1,4 @@
-import { Info, Premium } from "./types.ts";
+import { InfoRequest, Premium, PremiumResult } from "./types.ts";
 
 const API_URL = "https://www.huk.de/voll/api/tarifiere";
 const HEADERS = {
@@ -14,7 +14,7 @@ const HEADERS = {
  * @param info personal information
  * @returns premium
  */
-export async function getPremium(info: Info): Promise<Premium> {
+export async function getPremium(info: InfoRequest): Promise<Premium> {
   const res = await fetch(API_URL, {
     method: "POST",
     headers: HEADERS,
@@ -25,7 +25,19 @@ export async function getPremium(info: Info): Promise<Premium> {
     throw new Error(`Got status code ${res.status}`);
   }
 
-  const beitrag: Premium = await res.json();
+  const beitrag: PremiumResult = await res.json();
 
-  return beitrag;
+  return {
+    beitragGesamt: beitrag.beitragGesamt,
+    beitragProdukt: info.produktlinie === "S"
+      ? beitrag.beitragProduktS
+      : info.produktlinie === "K"
+      ? beitrag.beitragProduktK
+      : info.produktlinie === "E"
+      ? beitrag.beitragProduktE
+      : ((): never => {
+        throw new Error("Invalid produktlinie");
+      })(),
+    beitragPpv: beitrag.beitragPpv,
+  };
 }
