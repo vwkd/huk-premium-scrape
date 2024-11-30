@@ -111,9 +111,7 @@ export interface InfoRequest {
  */
 export interface Premium {
   /**
-   * Gesamtbeitrag
-   *
-   * - Achtung: variiert je nach `zahlweise`
+   * Monatsgesamtbeitrag
    */
   beitragGesamt: number;
   /**

@@ -102,7 +102,13 @@ async function get(info: InfoRequest, year: number) {
       zahlweise: info.zahlweise,
       beitragProdukt: premium.beitragProduktS,
       beitragPpv: premium.beitragPpv,
-      beitragGesamt: premium.beitragGesamt,
+      beitragGesamt: Number(
+        (info.zahlweise === 1
+          ? premium.beitragGesamt / 12
+          : info.zahlweise === 2
+          ? premium.beitragGesamt / 6
+          : premium.beitragGesamt).toFixed(2),
+      ),
     };
 
     const line = JSON.stringify(result);
@@ -117,7 +123,13 @@ async function get(info: InfoRequest, year: number) {
       zahlweise: info.zahlweise,
       beitragProdukt: premium.beitragProduktK,
       beitragPpv: premium.beitragPpv,
-      beitragGesamt: premium.beitragGesamt,
+      beitragGesamt: Number(
+        (info.zahlweise === 1
+          ? premium.beitragGesamt / 12
+          : info.zahlweise === 2
+          ? premium.beitragGesamt / 6
+          : premium.beitragGesamt).toFixed(2),
+      ),
     };
 
     const line = JSON.stringify(result);
@@ -132,7 +144,13 @@ async function get(info: InfoRequest, year: number) {
       zahlweise: info.zahlweise,
       beitragProdukt: premium.beitragProduktE,
       beitragPpv: premium.beitragPpv,
-      beitragGesamt: premium.beitragGesamt,
+      beitragGesamt: Number(
+        (info.zahlweise === 1
+          ? premium.beitragGesamt / 12
+          : info.zahlweise === 2
+          ? premium.beitragGesamt / 6
+          : premium.beitragGesamt).toFixed(2),
+      ),
     };
 
     const line = JSON.stringify(result);
