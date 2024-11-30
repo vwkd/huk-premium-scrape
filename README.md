@@ -1,3 +1,3 @@
 # README
 
-Client for HUK Private Krankenversicherung API
+Scrape HUK-Coburg private health insurance premiums for years of life

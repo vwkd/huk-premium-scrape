@@ -14,7 +14,7 @@ const HEADERS = {
  * @param info personal information
  * @returns premium
  */
-export async function getPremium(info: InfoRequest): Promise<Premium> {
+export async function getPremium(info: InfoRequest): Promise<PremiumResult> {
   const res = await fetch(API_URL, {
     method: "POST",
     headers: HEADERS,
@@ -25,19 +25,7 @@ export async function getPremium(info: InfoRequest): Promise<Premium> {
     throw new Error(`Got status code ${res.status}`);
   }
 
-  const beitrag: PremiumResult = await res.json();
+  const premium: PremiumResult = await res.json();
 
-  return {
-    beitragGesamt: beitrag.beitragGesamt,
-    beitragProdukt: info.produktlinie === "S"
-      ? beitrag.beitragProduktS
-      : info.produktlinie === "K"
-      ? beitrag.beitragProduktK
-      : info.produktlinie === "E"
-      ? beitrag.beitragProduktE
-      : ((): never => {
-        throw new Error("Invalid produktlinie");
-      })(),
-    beitragPpv: beitrag.beitragPpv,
-  };
+  return premium;
 }
