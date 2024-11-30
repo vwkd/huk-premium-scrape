@@ -111,7 +111,7 @@ export interface InfoRequest {
  */
 export interface Premium {
   /**
-   * Monatsgesamtbeitrag
+   * Gesamtbeitrag pro Jahr
    */
   beitragGesamt: number;
   /**
