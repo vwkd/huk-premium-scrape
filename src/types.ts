@@ -1,7 +1,7 @@
 /**
- * Personal information
+ * Request for premium
  */
-export interface InfoRequest {
+export interface PremiumRequest {
   /**
    * Beruflicher Status
    *
@@ -107,27 +107,9 @@ export interface InfoRequest {
 }
 
 /**
- * Premium amounts
+ * Response for premium
  */
-export interface Premium {
-  /**
-   * Gesamtbeitrag pro Jahr
-   */
-  beitragGesamt: number;
-  /**
-   * Monatsbeitrag
-   */
-  beitragProdukt: number;
-  /**
-   * Monatsbeitrag Pflegepflichtversicherung
-   */
-  beitragPpv: number;
-}
-
-/**
- * Premium amounts
- */
-export interface PremiumResult {
+export interface PremiumResponse {
   /**
    * Gesamtbeitrag
    *
@@ -150,4 +132,38 @@ export interface PremiumResult {
    * Monatsbeitrag Pflegepflichtversicherung
    */
   beitragPpv: number;
+}
+
+/**
+ * Entry of data
+ */
+export interface Entry {
+  /**
+   * Produktlinie
+   */
+  produktlinie: "E" | "K" | "S";
+  /**
+   * Jahr
+   */
+  year: number;
+  /**
+   * Selbstbeteiligung
+   */
+  sb: number;
+  /**
+   * Zahlweise
+   */
+  zahlweise: 1 | 2 | 12;
+  /**
+   * Monatsbeitrag
+   */
+  beitragProdukt: number;
+  /**
+   * Monatsbeitrag Pflegepflichtversicherung
+   */
+  beitragPpv: number;
+  /**
+   * Gesamtbeitrag pro Jahr
+   */
+  beitragGesamt: number;
 }

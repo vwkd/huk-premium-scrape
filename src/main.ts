@@ -1,158 +1,217 @@
 import { getPremium } from "./fetch.ts";
-import { InfoRequest } from "./types.ts";
+import { Entry } from "./types.ts";
+import { Command } from "@cliffy/command";
+import { exists } from "@std/fs";
 
 const OUTPUT_FILE = "out/data.jsonl";
-const yearOfBirth = 2000;
-const yearsMax = 30;
+/**
+ * Maximum age for which premiums are available
+ *
+ * - get from earliest possible birthyear in form
+ */
+const MAX_AGE = 100;
+const ZAHLWEISEN = [1, 2, 12] as const;
+const SELBSTBEHALTE_SK = [0, 300, 600, 1500] as const;
+const SELBSTBEHALTE_E = [300, 1500] as const;
+const TODAY = new Date();
+const CURRENT_YEAR = TODAY.getUTCFullYear();
+const FIRST_OF_NEXT_MONTH = new Date(Date.UTC(
+  TODAY.getUTCFullYear(),
+  TODAY.getUTCMonth() + 1,
+  1,
+));
 
-try {
-  await Deno.remove(OUTPUT_FILE);
-} catch (e) {
-  if (!(e instanceof Deno.errors.NotFound)) {
-    throw e;
-  }
-}
+await new Command()
+  .name("huk-premium-scrape")
+  .version("0.0.1")
+  .description("Scrape HUK-Coburg private health insurance premiums for years of life")
+  .arguments("<yearOfBirth:number> <durationYears:number>")
+  .action(main)
+  .parse(Deno.args);
 
 /**
- * @module
- *
  * Scrape HUK-Coburg private health insurance premiums for years of life
  *
- * - from 0 to `yearsMax` years of life
+ * - from 0 to `durationYears` years of life
  * - beware: approximation using premiums from cohorts of previous years, newer cohorts aren't necessarily like older ones!
  * - doesn't support Krankentagegeld
- * - makes `yearsMax*3*(4+4+2)` requests
+ * - makes `durationYears*3*(4+4+2)` requests
  * - hardcode `berufGruppe: 1` since all give identical data, see `validate: add` commit
  */
-for (let year = 0; year <= yearsMax; year += 1) {
-  const yearOfBirthOld = yearOfBirth - year;
+async function main(_, yearOfBirth: number, durationYears: number) {
+  console.info(
+    `Getting premiums for ${yearOfBirth} with ${durationYears} years of plan`,
+  );
 
-  for (const zahlweise of [1, 2, 12]) {
-    for (const sbS of [0, 300, 600, 1500]) {
-      const info = {
-        berufGruppe: 1,
-        dateOfBirthVp: `${yearOfBirthOld}-01-01`,
-        startDate: "2025-01-01",
-        sbE: 300,
-        sbK: 0,
-        sbS,
-        produktlinie: "S",
-        ppv: true,
-        kt: false,
-        ktTgs: 50,
-        zahlweise,
-      } as const;
+  const earliestYear = CURRENT_YEAR - MAX_AGE;
 
-      await get(info, year);
-    }
-    for (const sbK of [0, 300, 600, 1500]) {
-      const info = {
-        berufGruppe: 1,
-        dateOfBirthVp: `${yearOfBirthOld}-01-01`,
-        startDate: "2025-01-01",
-        sbE: 300,
-        sbK,
-        sbS: 0,
-        produktlinie: "K",
-        ppv: true,
-        kt: false,
-        ktTgs: 50,
-        zahlweise,
-      } as const;
+  if (
+    !Number.isInteger(durationYears) || durationYears < 0 ||
+    durationYears > MAX_AGE
+  ) {
+    throw new Error(
+      `Expected 'durationYears' to be a positive integer smaller or equal to '${MAX_AGE}'`,
+    );
+  }
 
-      await get(info, year);
-    }
-    for (const sbE of [300, 1500]) {
-      const info = {
-        berufGruppe: 1,
-        dateOfBirthVp: `${yearOfBirthOld}-01-01`,
-        startDate: "2025-01-01",
-        sbE,
-        sbK: 0,
-        sbS: 0,
-        produktlinie: "E",
-        ppv: true,
-        kt: false,
-        ktTgs: 50,
-        zahlweise,
-      } as const;
+  if (
+    !Number.isInteger(yearOfBirth) || yearOfBirth - durationYears < earliestYear
+  ) {
+    throw new Error(
+      `Expected 'yearOfBirth' to be larger or equal to '${
+        earliestYear + durationYears
+      }'`,
+    );
+  }
 
-      await get(info, year);
+  if (await exists(OUTPUT_FILE)) {
+    throw new Error(
+      `Aborting because output file already exists. Remove it to continue.`,
+    );
+  }
+
+  for (let year = 0; year <= durationYears; year += 1) {
+    const yearOfBirthOld = yearOfBirth - year;
+
+    for (const zahlweise of ZAHLWEISEN) {
+      for (const sb of SELBSTBEHALTE_SK) {
+        const result = await getEntry("S", sb, zahlweise, yearOfBirthOld, year);
+        const line = JSON.stringify(result);
+        console.log(line);
+        await Deno.writeTextFile(OUTPUT_FILE, line + "\n", { append: true });
+      }
+
+      for (const sb of SELBSTBEHALTE_SK) {
+        const result = await getEntry("K", sb, zahlweise, yearOfBirthOld, year);
+        const line = JSON.stringify(result);
+        console.log(line);
+        await Deno.writeTextFile(OUTPUT_FILE, line + "\n", { append: true });
+      }
+
+      for (const sb of SELBSTBEHALTE_E) {
+        const result = await getEntry("E", sb, zahlweise, yearOfBirthOld, year);
+        const line = JSON.stringify(result);
+        console.log(line);
+        await Deno.writeTextFile(OUTPUT_FILE, line + "\n", { append: true });
+      }
     }
   }
-}
 
-/**
- * Get premium and write to file
- *
- * @param info personal information
- * @param year year of insurance
- * @returns
- */
-async function get(info: InfoRequest, year: number) {
-  const premium = await getPremium(info);
+  /**
+   * Get entry for year, produktlinie, sb, and zahlweise
+   *
+   * @param produktlinie produktlinie
+   * @param sb Selbstbeteiligung
+   * @param zahlweise zahlweise
+   * @param yearOfBirthOld year of birth
+   * @param year year
+   * @returns entry for personal information
+   */
+  async function getEntry<P extends "S" | "K" | "E">(
+    produktlinie: P,
+    sb: P extends "E" ? 300 | 1500 : 0 | 300 | 600 | 1500,
+    zahlweise: 1 | 2 | 12,
+    yearOfBirthOld: number,
+    year: number,
+  ): Promise<Entry> {
+    if (produktlinie === "S") {
+      const info = {
+        berufGruppe: 1,
+        dateOfBirthVp: `${yearOfBirthOld}-01-01`,
+        startDate: FIRST_OF_NEXT_MONTH.toISOString().split("T")[0],
+        sbE: SELBSTBEHALTE_E[0],
+        sbK: SELBSTBEHALTE_SK[0],
+        sbS: sb,
+        produktlinie,
+        ppv: true,
+        kt: false,
+        ktTgs: 50,
+        zahlweise,
+      } as const;
 
-  if (info.produktlinie === "S") {
-    const result = {
-      produktlinie: info.produktlinie,
-      year: year,
-      sb: info.sbS,
-      zahlweise: info.zahlweise,
-      beitragProdukt: premium.beitragProduktS,
-      beitragPpv: premium.beitragPpv,
-      beitragGesamt: Number(
-        (info.zahlweise === 12
-          ? premium.beitragGesamt * 12
-          : info.zahlweise === 2
-          ? premium.beitragGesamt * 2
-          : premium.beitragGesamt).toFixed(2),
-      ),
-    };
+      const premium = await getPremium(info);
 
-    const line = JSON.stringify(result);
-    console.log(line);
-    await Deno.writeTextFile(OUTPUT_FILE, line + "\n", { append: true });
-  } else if (info.produktlinie === "K") {
-    const result = {
-      produktlinie: info.produktlinie,
-      year: year,
-      sb: info.sbK,
-      zahlweise: info.zahlweise,
-      beitragProdukt: premium.beitragProduktK,
-      beitragPpv: premium.beitragPpv,
-      beitragGesamt: Number(
-        (info.zahlweise === 12
-          ? premium.beitragGesamt * 12
-          : info.zahlweise === 2
-          ? premium.beitragGesamt * 2
-          : premium.beitragGesamt).toFixed(2),
-      ),
-    };
+      return {
+        produktlinie,
+        year,
+        sb,
+        zahlweise,
+        beitragProdukt: premium.beitragProduktS,
+        beitragPpv: premium.beitragPpv,
+        beitragGesamt: Number(
+          (info.zahlweise === 12
+            ? premium.beitragGesamt * 12
+            : info.zahlweise === 2
+            ? premium.beitragGesamt * 2
+            : premium.beitragGesamt).toFixed(2),
+        ),
+      };
+    } else if (produktlinie === "K") {
+      const info = {
+        berufGruppe: 1,
+        dateOfBirthVp: `${yearOfBirthOld}-01-01`,
+        startDate: FIRST_OF_NEXT_MONTH.toISOString().split("T")[0],
+        sbE: SELBSTBEHALTE_E[0],
+        sbK: sb,
+        sbS: SELBSTBEHALTE_SK[0],
+        produktlinie,
+        ppv: true,
+        kt: false,
+        ktTgs: 50,
+        zahlweise,
+      } as const;
 
-    const line = JSON.stringify(result);
-    console.log(line);
-    await Deno.writeTextFile(OUTPUT_FILE, line + "\n", { append: true });
-  } else if (info.produktlinie === "E") {
-    const result = {
-      produktlinie: info.produktlinie,
-      year: year,
-      sb: info.sbE,
-      zahlweise: info.zahlweise,
-      beitragProdukt: premium.beitragProduktE,
-      beitragPpv: premium.beitragPpv,
-      beitragGesamt: Number(
-        (info.zahlweise === 12
-          ? premium.beitragGesamt * 12
-          : info.zahlweise === 2
-          ? premium.beitragGesamt * 2
-          : premium.beitragGesamt).toFixed(2),
-      ),
-    };
+      const premium = await getPremium(info);
 
-    const line = JSON.stringify(result);
-    console.log(line);
-    await Deno.writeTextFile(OUTPUT_FILE, line + "\n", { append: true });
-  } else {
-    throw new Error("Invalid produktlinie");
+      return {
+        produktlinie,
+        year,
+        sb,
+        zahlweise,
+        beitragProdukt: premium.beitragProduktK,
+        beitragPpv: premium.beitragPpv,
+        beitragGesamt: Number(
+          (info.zahlweise === 12
+            ? premium.beitragGesamt * 12
+            : info.zahlweise === 2
+            ? premium.beitragGesamt * 2
+            : premium.beitragGesamt).toFixed(2),
+        ),
+      };
+    } else if (produktlinie === "E") {
+      const info = {
+        berufGruppe: 1,
+        dateOfBirthVp: `${yearOfBirthOld}-01-01`,
+        startDate: FIRST_OF_NEXT_MONTH.toISOString().split("T")[0],
+        sbE: sb,
+        sbK: SELBSTBEHALTE_SK[0],
+        sbS: SELBSTBEHALTE_SK[0],
+        produktlinie,
+        ppv: true,
+        kt: false,
+        ktTgs: 50,
+        zahlweise,
+      } as const;
+
+      const premium = await getPremium(info);
+
+      return {
+        produktlinie,
+        year,
+        sb,
+        zahlweise,
+        beitragProdukt: premium.beitragProduktE,
+        beitragPpv: premium.beitragPpv,
+        beitragGesamt: Number(
+          (info.zahlweise === 12
+            ? premium.beitragGesamt * 12
+            : info.zahlweise === 2
+            ? premium.beitragGesamt * 2
+            : premium.beitragGesamt).toFixed(2),
+        ),
+      };
+    } else {
+      throw new Error("Invalid produktlinie");
+    }
   }
 }

@@ -1,12 +1,12 @@
-import { InfoRequest, Premium, PremiumResult } from "./types.ts";
+import { PremiumRequest, PremiumResponse } from "./types.ts";
 
 const API_URL = "https://www.huk.de/voll/api/tarifiere";
-const HEADERS = {
-  "Content-Type": "application/json",
-  "Referer": "https://www.huk.de/tarifrechner/voll/unser-angebot",
-  "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.3",
-};
+
+const USER_AGENT = Deno.env.get("USER_AGENT");
+
+if (!USER_AGENT) {
+  throw new Error("USER_AGENT environment variable not set");
+}
 
 /**
  * Get premium for HUK private health insurance from API
@@ -14,10 +14,16 @@ const HEADERS = {
  * @param info personal information
  * @returns premium
  */
-export async function getPremium(info: InfoRequest): Promise<PremiumResult> {
+export async function getPremium(
+  info: PremiumRequest,
+): Promise<PremiumResponse> {
   const res = await fetch(API_URL, {
     method: "POST",
-    headers: HEADERS,
+    headers: {
+      "Content-Type": "application/json",
+      "Referer": "https://www.huk.de/tarifrechner/voll/unser-angebot",
+      "User-Agent": USER_AGENT!,
+    },
     body: JSON.stringify(info),
   });
 
@@ -25,7 +31,7 @@ export async function getPremium(info: InfoRequest): Promise<PremiumResult> {
     throw new Error(`Got status code ${res.status}`);
   }
 
-  const premium: PremiumResult = await res.json();
+  const premium: PremiumResponse = await res.json();
 
   return premium;
 }

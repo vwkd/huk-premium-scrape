@@ -1,5 +1,9 @@
 {
   "tasks": {
-    "run": "deno run --allow-net --allow-write src/main.ts"
+    "run": "deno run --allow-net='www.huk.de:443' --allow-read='out' --allow-write='out' --allow-env='USER_AGENT' --env-file=.env src/main.ts"
+  },
+  "imports": {
+    "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.7",
+    "@std/fs": "jsr:@std/fs@^1.0.6"
   }
 }
