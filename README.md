@@ -1,16 +1,18 @@
 # README
 
-Scrape HUK-Coburg private health insurance premiums for years of life
+Scrape HUK-Coburg private health insurance premiums
 
 
 
 ## Features
 
-- for Tarif Komfort, Tarif SelectPro, Tarif E
-- includes Pflegepflichtversicherung
-- doesn't include Krankentagegeld
+- get yearly premiums over time
+  - for Tarif Komfort, Tarif SelectPro, and Tarif E
+  - with Pflegepflichtversicherung
+  - without Krankentagegeld
 - approximates future premiums using current premiums from older cohorts
 - beware: approximation might not be exact, since younger cohorts aren't necessarily like older cohorts!
+- beware: doesn't account for health conditions, might get different premiums when signing up!
 
 
 

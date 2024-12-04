@@ -30,11 +30,15 @@ await new Command()
   .parse(Deno.args);
 
 /**
- * Scrape HUK-Coburg private health insurance premiums for years of life
+ * Scrape HUK-Coburg private health insurance premiums
  *
- * - from 0 to `durationYears` years of life
+ * - get yearly premiums over time
+ *   - for Tarif Komfort, Tarif SelectPro, and Tarif E
+ *   - with Pflegepflichtversicherung
+ *   - without Krankentagegeld
  * - approximates future premiums using current premiums from older cohorts
  * - beware: approximation might not be exact, since younger cohorts aren't necessarily like older cohorts!
+ * - beware: doesn't account for health conditions, might get different premiums when signing up!
  * - makes `durationYears*3*(4+4+2)` requests
  */
 async function main(_, yearOfBirth: number, durationYears: number) {
