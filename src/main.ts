@@ -33,10 +33,9 @@ await new Command()
  * Scrape HUK-Coburg private health insurance premiums for years of life
  *
  * - from 0 to `durationYears` years of life
- * - beware: approximation using premiums from cohorts of previous years, newer cohorts aren't necessarily like older ones!
- * - doesn't support Krankentagegeld
+ * - approximates future premiums using current premiums from older cohorts
+ * - beware: approximation might not be exact, since younger cohorts aren't necessarily like older cohorts!
  * - makes `durationYears*3*(4+4+2)` requests
- * - hardcode `berufGruppe: 1` since all give identical data, see `validate: add` commit
  */
 async function main(_, yearOfBirth: number, durationYears: number) {
   console.info(
@@ -99,6 +98,10 @@ async function main(_, yearOfBirth: number, durationYears: number) {
 
   /**
    * Get entry for year, produktlinie, sb, and zahlweise
+   *
+   * - includes Pflegepflichtversicherung
+   * - doesn't include Krankentagegeld
+   * - hardcode `berufGruppe: 1` since all give identical data, see `validate: add` commit
    *
    * @param produktlinie produktlinie
    * @param sb Selbstbeteiligung
